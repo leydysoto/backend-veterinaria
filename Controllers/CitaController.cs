@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using veterinaria.Models;
 using veterinaria.Models.viewModel;
+using veterinaria.Models.viewModel.request;
 
 namespace veterinaria.Controllers
 {
@@ -22,12 +23,14 @@ namespace veterinaria.Controllers
         public async Task<IActionResult> GetCitas()
         {
             var citasDTO = await _context.Citas
-       .Include(c => c.Cliente) // Incluye la información del cliente
-       .Include(c => c.Mascota) // Incluye la información de la mascota
+       .Include(c => c.Cliente) 
+       .Include(c => c.Mascota) 
        .Select(c => new CitaDTO
        {
            CitaId = c.CitaId,
            Fecha = c.Fecha,
+           ClienteId = c.ClienteId,
+           MascotaId = c.MascotaId,
            Cliente = new ClienteDTO
            {
                ClienteId = c.Cliente.ClienteId ,
@@ -48,7 +51,7 @@ namespace veterinaria.Controllers
                },
 
            }
-           // Puedes incluir más propiedades según sea necesario
+           
        })
        .ToListAsync();
 
@@ -62,53 +65,108 @@ namespace veterinaria.Controllers
             var cita = await _context.Citas
                 .Include(c => c.Cliente)
                 .Include(c => c.Mascota)
-                .Include(c => c.HistorialMedicos)
                 .FirstOrDefaultAsync(c => c.CitaId == id);
 
             if (cita == null)
             {
                 return NotFound();
             }
+            var citaDTO = new CitaDTO
+            {
+                CitaId = cita.CitaId,
+                Fecha = cita.Fecha,
+                ClienteId = cita.ClienteId,
+                MascotaId = cita.MascotaId,
+                Cliente = new ClienteDTO
+                {
+                    ClienteId = cita.Cliente.ClienteId,
+                    Nombre = cita.Cliente.Nombre
+                },
+                Mascota = new MascotaDTO
+                {
+                    MascotaId = cita.Mascota.MascotaId,
+                    Nombre = cita.Mascota.Nombre,
+                    Especie = cita.Mascota.Especie,
+                    Raza = cita.Mascota.Raza,
+                    FechaNacimiento = cita.Mascota.FechaNacimiento,
+                    ClienteId = cita.Mascota.ClienteId,
+                    Cliente = new ClienteDTO
+                    {
+                        ClienteId = cita.Cliente.ClienteId,
+                        Nombre = cita.Cliente.Nombre
+                    },
 
-            return Ok(cita);
+                }
+
+
+            };
+
+            return Ok(citaDTO);
         }
 
         // POST: api/Cita
         [HttpPost]
-        public async Task<IActionResult> PostCita(Cita cita)
+        public async Task<ActionResult<Cita>> PostCita([FromBody] CitaRequest citaRequest)
         {
-            _context.Citas.Add(cita);
-            await _context.SaveChangesAsync();
+            try
+            {
+                if(!ModelState.IsValid)
+                {
+                    return BadRequest(ModelState);
+                }
+                if (!citaRequest.ClienteId.HasValue || !citaRequest.MascotaId.HasValue)
+                {
+                    return BadRequest("ClienteId y MascotaId no pueden ser nulos.");
+                }
 
-            return CreatedAtAction(nameof(GetCita), new { id = cita.CitaId }, cita);
+             
+            
+                var nuevaCita = new Cita
+                {
+                    Fecha = citaRequest.Fecha,
+                    ClienteId = citaRequest.ClienteId,
+                    MascotaId = citaRequest.MascotaId,
+                    
+
+                };
+                _context.Citas.Add(nuevaCita);
+                await _context.SaveChangesAsync();
+
+                return CreatedAtAction(nameof(GetCita), new { id = nuevaCita.CitaId }, nuevaCita);
+            }
+            catch(Exception ex)
+            {
+                return StatusCode(500, $"Error interno al crear la mascota: {ex.Message}");
+            }
+            
         }
 
         // PUT: api/Cita/5
         [HttpPut("{id}")]
-        public async Task<IActionResult> PutCita(int id, Cita cita)
+        public async Task<IActionResult> PutCita(int id, [FromBody] CitaRequest  citaRequest)
         {
-            if (id != cita.CitaId)
+            var citaExistente=await _context.Citas
+                .Include(m=>m.Cliente)
+                .Include(m=>m.Mascota)
+                .FirstOrDefaultAsync(m=>m.CitaId==id);
+            if (citaExistente == null)
             {
-                return BadRequest();
+                return NotFound("Cita no encontrada");
             }
-
-            _context.Entry(cita).State = EntityState.Modified;
-
-            try
+            var clienteExistente = await _context.Clientes.FindAsync(citaRequest.ClienteId);
+            if (clienteExistente == null)
             {
-                await _context.SaveChangesAsync();
+                return NotFound("Cliente no encontrado");
             }
-            catch (DbUpdateConcurrencyException)
+            var mascotaExistente = await _context.Mascotas.FindAsync(citaRequest.MascotaId);
+            if(mascotaExistente == null)
             {
-                if (!CitaExists(id))
-                {
-                    return NotFound();
-                }
-                else
-                {
-                    throw;
-                }
+                return NotFound("Mascota no encontrado");
             }
+            citaExistente.Fecha=citaRequest.Fecha;
+            citaExistente.ClienteId = citaRequest.ClienteId;
+            citaExistente.MascotaId= citaRequest.MascotaId;
+            await _context.SaveChangesAsync();
 
             return NoContent();
         }

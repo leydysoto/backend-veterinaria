@@ -2,6 +2,7 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using veterinaria.Models;
+using veterinaria.Models.viewModel.request;
 
 namespace veterinaria.Controllers
 {
@@ -50,32 +51,30 @@ namespace veterinaria.Controllers
 
         // PUT: api/Servicio/5
         [HttpPut("{id}")]
-        public async Task<IActionResult> PutServicio(int id, Servicio servicio)
+        public async Task<IActionResult> PutServicio(int id, ServicioRequest servicioRequest)
         {
-            if (id != servicio.ServicioId)
-            {
-                return BadRequest();
-            }
-
-            _context.Entry(servicio).State = EntityState.Modified;
-
             try
             {
-                await _context.SaveChangesAsync();
-            }
-            catch (DbUpdateConcurrencyException)
-            {
-                if (!ServicioExists(id))
+
+                var existingServicio = await _context.Servicios.FindAsync(id);
+
+                if (existingServicio == null)
                 {
                     return NotFound();
                 }
-                else
-                {
-                    throw;
-                }
-            }
 
-            return NoContent();
+                //PARA UN SETEO RAPIDO 
+
+                _context.Entry(existingServicio).CurrentValues.SetValues(servicioRequest);
+                await _context.SaveChangesAsync();
+
+                return NoContent();
+            }
+            catch (Exception ex)
+            {
+
+                return StatusCode(500, $"Error interno al actualizar el servicio: {ex.Message}");
+            }
         }
 
         // DELETE: api/Servicio/5

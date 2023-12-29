@@ -22,7 +22,7 @@ namespace veterinaria.Controllers
         public async Task<IActionResult> GetHistorialesMedicos()
         {
             var historialesDTO = await _context.HistorialMedicos
-          .Include(h => h.Cita) // Incluye la información de la cita
+          .Include(h => h.Cita) 
           .Select(h => new HistorialMedicoDTO
           {
               HistorialId = h.HistorialId,
@@ -34,6 +34,8 @@ namespace veterinaria.Controllers
               {
                   CitaId = h.Cita.CitaId  ,
                   Fecha = h.Cita.Fecha,
+                  ClienteId= h.Cita.ClienteId ,
+                  MascotaId = h.Cita.MascotaId ,
                   Cliente = new ClienteDTO
                   {
                       ClienteId = h.Cita.Cliente.ClienteId ,
@@ -49,7 +51,7 @@ namespace veterinaria.Controllers
                       ClienteId = h.Cita.Mascota.ClienteId
                   }
               }
-              // Puedes incluir más propiedades según sea necesario
+              
           })
           .ToListAsync();
 
@@ -58,7 +60,7 @@ namespace veterinaria.Controllers
 
         // GET: api/HistorialMedico/5
         [HttpGet("{id}")]
-        public async Task<IActionResult> GetHistorialMedico(int id)
+        public async Task<ActionResult<HistorialMedico>> GetHistorialMedico(int id)
         {
             var historialMedico = await _context.HistorialMedicos
                 .Include(h => h.Cita)
@@ -68,8 +70,39 @@ namespace veterinaria.Controllers
             {
                 return NotFound();
             }
+            var historialMedicoDTO = new HistorialMedicoDTO
+            {
+                HistorialId = historialMedico.HistorialId,
+                Fecha = historialMedico.Fecha,
+                Descripcion = historialMedico.Descripcion,
+                Diagnostico = historialMedico.Diagnostico,
+                Tratamiento = historialMedico.Tratamiento,
+                Cita =  new CitaDTO
+                {
+                    CitaId = historialMedico.Cita.CitaId,
+                    Fecha = historialMedico.Cita.Fecha,
+                    ClienteId = historialMedico.Cita.ClienteId,
+                    MascotaId = historialMedico.Cita.MascotaId,
+                    Cliente= new ClienteDTO
+                    {
+                        ClienteId = historialMedico.Cita.Cliente.ClienteId,
+                        Nombre = historialMedico.Cita.Cliente.Nombre
+                    },
+                    
+                    Mascota =  new MascotaDTO
+                    {
+                        MascotaId = historialMedico.Cita.Mascota.MascotaId,
+                        Nombre = historialMedico.Cita.Mascota.Nombre,
+                        Especie = historialMedico.Cita.Mascota.Especie,
+                        Raza = historialMedico.Cita.Mascota.Raza,
+                        FechaNacimiento = historialMedico.Cita.Mascota.FechaNacimiento,
+                        ClienteId = historialMedico.Cita.Mascota.ClienteId
+                    }
+                    
+                }
+            };
 
-            return Ok(historialMedico);
+            return Ok(historialMedicoDTO);
         }
 
         // POST: api/HistorialMedico

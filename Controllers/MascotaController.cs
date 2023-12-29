@@ -23,7 +23,7 @@ namespace veterinaria.Controllers
         public async Task<ActionResult<IEnumerable<Mascota>>> GetMascotas()
         {
              var mascotasDTO = await _context.Mascotas
-            .Include(m => m.Cliente) // Incluye la información del cliente
+            .Include(m => m.Cliente) 
             .Select(m => new MascotaDTO
             {
                 MascotaId = m.MascotaId,
@@ -136,7 +136,7 @@ namespace veterinaria.Controllers
             mascotaExistente.Especie = mascotaRequest.Especie;
             mascotaExistente.Raza = mascotaRequest.Raza;
             mascotaExistente.FechaNacimiento = mascotaRequest.FechaNacimiento;
-            mascotaExistente.Cliente = clienteExistente;
+            mascotaExistente.ClienteId = clienteExistente.ClienteId;
 
             await _context.SaveChangesAsync();
 

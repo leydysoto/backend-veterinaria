@@ -64,10 +64,9 @@ namespace veterinaria.Controllers
                     return NotFound(); 
                 }
 
+                //PARA UN SETEO RAPIDO 
               
                 _context.Entry(existingCliente).CurrentValues.SetValues(clienteRequest);
-
-                
                 await _context.SaveChangesAsync();
 
                 return NoContent(); 
